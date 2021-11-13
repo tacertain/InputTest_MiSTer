@@ -199,10 +199,19 @@ wire [1:0] ar = status[9:8];
 assign VIDEO_ARX = (!ar) ? 12'd4 : (ar - 1'd1);
 assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
 
+// Used status bits
+// 00000000001111111111222222222233
+// 01234567890123456789012345678901
+// 0123456789abcdefghijklmnopqrstuv
+//    xxx  xx      xxxxxxxx        
+
 `include "build_id.v"
 localparam CONF_STR = {
 	"InputTest;;",
 	"-;",
+	"O35,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"OGJ,Analog Video H-Pos,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;",
+  "OKN,Analog Video V-Pos,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15;",
 	"O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"-;",
 	"F0,BIN,Load BIOS;",
@@ -334,7 +343,7 @@ jtframe_cen24 divider
 );
 
 ///////////////////   VIDEO   ////////////////////
-wire hblank, vblank, hs, vs;
+wire hblank, vblank, hs, vs, rs_hs, rs_vs;
 wire [7:0] r, g, b;
 arcade_video #(320,24) arcade_video
 (
@@ -343,9 +352,26 @@ arcade_video #(320,24) arcade_video
 	.RGB_in({r,g,b}),
 	.HBlank(hblank),
 	.VBlank(vblank),
-	.HSync(hs),
-	.VSync(vs),
+	.HSync(rs_hs),
+	.VSync(rs_vs),
 	.fx(status[5:3])
+);
+
+wire [3:0]  voffset = status[23:20];
+wire [3:0]  hoffset = status[19:16];
+
+jtframe_resync jtframe_resync
+(
+  .clk(clk_sys),
+  .pxl_cen(ce_pix),
+  .hs_in(hs),
+  .vs_in(vs),
+  .LVBL(vblank),
+  .LHBL(hblank),
+  .hoffset(hoffset),
+  .voffset(voffset),
+  .hs_out(rs_hs),
+  .vs_out(rs_vs)
 );
 
 ///////////////////   MAIN CORE   ////////////////////
